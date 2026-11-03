@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v064';
+    var FLAG = 'umedia_lampa_v065';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -180,15 +180,26 @@
     }
 
     function playVariant(variant) {
-        if (!variant || !variant.url) return;
+        if (!variant || typeof variant.url !== 'string' || !variant.url.trim()) {
+            notify('Не найдена ссылка на видео', true);
+            return;
+        }
 
-        if (Lampa.Player &&
-            typeof Lampa.Player.play === 'function') {
-            Lampa.Player.play(variant.url);
+        if (!Lampa.Player || typeof Lampa.Player.play !== 'function') {
+            notify('Не найден запуск плеера Lampa', true);
+            return;
         }
-        else {
-            notify('Не найден запуск плеера', true);
-        }
+
+        var playData = {
+            url: variant.url.trim(),
+            title: variant.title || 'Umedia',
+            quality: variant.quality || '',
+            poster: variant.poster || ''
+        };
+
+        console.log('[Umedia] Запуск видео:', playData);
+
+        Lampa.Player.play(playData);
     }
 
     function chooseVariant(movie) {
@@ -212,7 +223,9 @@
                 };
             }),
             onSelect: function (selected) {
-                playVariant(selected.variant);
+                if (selected && selected.variant) {
+                    playVariant(selected.variant);
+                }
             }
         });
     }
@@ -227,6 +240,7 @@
             .umedia-screen {
                 padding: 1.2em 2.2em 3em;
                 box-sizing: border-box;
+                min-height: 100%;
             }
 
             .umedia-heading {
@@ -240,6 +254,7 @@
                 display: grid;
                 grid-template-columns: repeat(6, minmax(0, 1fr));
                 gap: 1.1em .8em;
+                padding-bottom: 3em;
             }
 
             .umedia-tile {
@@ -286,7 +301,8 @@
                 font-size: .82em;
                 line-height: 1.25;
                 padding: .55em .5em .65em;
-                height: 3.3em;
+                min-height: 3.3em;
+                box-sizing: border-box;
                 overflow: hidden;
                 color: #fff;
             }
@@ -327,7 +343,8 @@
 
         var scroll = new Lampa.Scroll({
             mask: true,
-            over: true
+            over: true,
+            step: 480
         });
 
         var root = $('<div class="umedia-screen"></div>');
@@ -600,9 +617,11 @@
             Lampa.Controller.add('content', {
                 toggle: function () {
                     var view = scroll.render();
+
                     Lampa.Controller.collectionSet(view);
                     Lampa.Controller.collectionFocus(lastFocus || false, view);
                 },
+
                 left: function () {
                     if (Navigator.canmove('left')) {
                         Navigator.move('left');
@@ -611,15 +630,31 @@
                         Lampa.Controller.toggle('menu');
                     }
                 },
+
                 right: function () {
-                    if (Navigator.canmove('right')) Navigator.move('right');
+                    if (Navigator.canmove('right')) {
+                        Navigator.move('right');
+                    }
                 },
+
                 up: function () {
-                    if (Navigator.canmove('up')) Navigator.move('up');
+                    if (Navigator.canmove('up')) {
+                        Navigator.move('up');
+                    }
+                    else {
+                        scroll.wheel(-480);
+                    }
                 },
+
                 down: function () {
-                    if (Navigator.canmove('down')) Navigator.move('down');
+                    if (Navigator.canmove('down')) {
+                        Navigator.move('down');
+                    }
+                    else {
+                        scroll.wheel(480);
+                    }
                 },
+
                 back: function () {
                     Lampa.Activity.backward();
                 }
@@ -669,8 +704,6 @@
     }
 
     function openSearch(section) {
-        // Штатный редактор текста Lampa 3.3.x.
-        // Lampa.Input.show() в этой версии не существует.
         if (!Lampa.Input || typeof Lampa.Input.edit !== 'function') {
             notify('В этой сборке Lampa недоступен штатный ввод текста', true);
             return;
@@ -731,7 +764,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.4 initialized');
+        console.log('[Umedia] Version 0.6.5 initialized');
     }
 
     if (window.appready) {
