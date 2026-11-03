@@ -1,7 +1,8 @@
+
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v050';
+    var FLAG = 'umedia_lampa_v051';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -10,9 +11,9 @@
     var ICON = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6v2h3v1H7v-1h3v-2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v10h16V7H4z"/></svg>';
 
     function notify(message, error) {
-        Lampa.Noty.show(
-            message,
-            error ? { style: 'error', time: 5000 } : { time: 3000 }
+        Lampa.Noty.show(message, error
+            ? { style: 'error', time: 6000 }
+            : { time: 3000 }
         );
     }
 
@@ -29,38 +30,66 @@
         return el ? (el.textContent || '').trim() : '';
     }
 
+    // Запрос через штатную сеть Lampa
     function requestXml(url, done) {
-        $.ajax({
-            url: url,
-            method: 'GET',
-            dataType: 'text',
-            cache: false,
-            timeout: 20000,
+        var completed = false;
 
-            success: function (text) {
+        function finish(error, xml) {
+            if (completed) return;
+            completed = true;
+            done(error, xml);
+        }
+
+        Lampa.Reguest.native(
+            url,
+
+            function (response) {
                 try {
+                    var text = typeof response === 'string'
+                        ? response
+                        : response.responseText || '';
+
+                    if (!text) {
+                        throw new Error('Сервер вернул пустой ответ');
+                    }
+
                     var xml = new DOMParser().parseFromString(
                         text,
                         'text/xml'
                     );
 
                     if (xml.getElementsByTagName('parsererror').length) {
-                        throw new Error('Некорректный XML');
+                        throw new Error('Ошибка разбора XML');
                     }
 
-                    done(null, xml);
+                    finish(null, xml);
                 }
                 catch (e) {
-                    done(e);
+                    finish(new Error(e.message));
                 }
             },
 
-            error: function (xhr, status) {
-                done(new Error(
-                    'Не удалось загрузить каталог: ' + status
-                ));
+            function (xhr, exception) {
+                var message = 'Ошибка загрузки';
+
+                try {
+                    message = Lampa.Reguest.errorDecode(
+                        xhr,
+                        exception
+                    );
+                }
+                catch (e) {}
+
+                finish(new Error(message));
+            },
+
+            null,
+
+            {
+                dataType: 'text',
+                timeout: 25000
             }
-        });
+        );
     }
 
     function getChannels(xml) {
@@ -112,7 +141,7 @@
 
             if (!items.length) {
                 notify(
-                    'В этом разделе пока нет прямых ссылок на видео',
+                    'В ответе сервера нет доступных ссылок на видео',
                     true
                 );
                 return;
@@ -136,15 +165,13 @@
 
                     if (!item || !item.url) return;
 
-                    if (
-                        Lampa.Player &&
-                        typeof Lampa.Player.play === 'function'
-                    ) {
+                    if (Lampa.Player &&
+                        typeof Lampa.Player.play === 'function') {
                         Lampa.Player.play(item.url);
                     }
                     else {
                         notify(
-                            'Не найден встроенный метод запуска плеера',
+                            'Не найден метод запуска плеера',
                             true
                         );
                     }
@@ -186,6 +213,8 @@
     }
 
     function openCatalog() {
+        notify('Подключаюсь к Umedia');
+
         requestXml(MENU_URL, function (error, xml) {
             if (error) {
                 notify(error.message, true);
@@ -210,7 +239,7 @@
             });
 
             if (!sections.length) {
-                notify('В меню Umedia не найдены разделы', true);
+                notify('Разделы Umedia не найдены', true);
                 return;
             }
 
@@ -266,8 +295,7 @@
 
     function init() {
         addMenuItem();
-
-        console.log('[Umedia] v0.5.0 initialized');
+        console.log('[Umedia] Version 0.5.1 initialized');
     }
 
     if (window.appready) {
@@ -275,9 +303,7 @@
     }
     else {
         Lampa.Listener.follow('app', function (event) {
-            if (event.type === 'ready') {
-                init();
-            }
+            if (event.type === 'ready') init();
         });
     }
 
