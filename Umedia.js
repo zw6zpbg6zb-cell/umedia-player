@@ -1,12 +1,14 @@
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v060';
+    var FLAG = 'umedia_lampa_v061';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
     var MENU_URL = 'https://umedia.click/tv.xml';
     var CSS_ID = 'umedia-catalog-style';
+
+    var CONTROLLER = 'umedia_catalog_content';
 
     var ICON = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6v2h3v1H7v-1h3v-2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v10h16V7H4z"/></svg>';
 
@@ -37,14 +39,12 @@
 
         function finish(error, xml) {
             if (finished) return;
-
             finished = true;
             done(error, xml);
         }
 
         network.native(
             url,
-
             function (response) {
                 try {
                     var raw = typeof response === 'string'
@@ -70,7 +70,6 @@
                     finish(e);
                 }
             },
-
             function (xhr, exception) {
                 var message = 'Ошибка загрузки данных';
 
@@ -81,9 +80,7 @@
 
                 finish(new Error(message));
             },
-
             null,
-
             {
                 dataType: 'text',
                 timeout: 30000
@@ -130,11 +127,7 @@
 
             if (!title || !url) return;
 
-            var key = normalizeTitle(title);
-
-            if (!key) {
-                key = title.toLowerCase();
-            }
+            var key = normalizeTitle(title) || title.toLowerCase();
 
             var item = {
                 title: title,
@@ -157,10 +150,7 @@
 
             var group = grouped[key];
 
-            if (!group.poster && poster) {
-                group.poster = poster;
-            }
-
+            if (!group.poster && poster) group.poster = poster;
             if (!group.description && description) {
                 group.description = description;
             }
@@ -173,15 +163,15 @@
         });
 
         result.forEach(function (movie) {
-            movie.variants.sort(function (a, b) {
-                var order = {
-                    '4K / UHD': 1,
-                    'Full HD': 2,
-                    'HD': 3,
-                    'SD / DVD': 4,
-                    'Видео': 5
-                };
+            var order = {
+                '4K / UHD': 1,
+                'Full HD': 2,
+                'HD': 3,
+                'SD / DVD': 4,
+                'Видео': 5
+            };
 
+            movie.variants.sort(function (a, b) {
                 return (order[a.quality] || 9) -
                     (order[b.quality] || 9);
             });
@@ -215,7 +205,6 @@
 
         Lampa.Select.show({
             title: movie.title + ' — качество',
-
             items: movie.variants.map(function (variant) {
                 return {
                     title: variant.quality,
@@ -223,7 +212,6 @@
                     variant: variant
                 };
             }),
-
             onSelect: function (selected) {
                 playVariant(selected.variant);
             }
@@ -252,7 +240,7 @@
             .umedia-grid {
                 display: grid;
                 grid-template-columns: repeat(6, minmax(0, 1fr));
-                gap: 1.1em 0.8em;
+                gap: 1.1em .8em;
             }
 
             .umedia-tile {
@@ -348,6 +336,7 @@
 
         var alive = true;
         var request = null;
+        var lastFocus = false;
 
         root.append(
             $('<div class="umedia-heading"></div>').text(
@@ -357,6 +346,16 @@
 
         root.append(grid);
         scroll.append(root);
+
+        function focusCatalog() {
+            if (!alive) return;
+
+            var view = scroll.render();
+
+            Lampa.Controller.collectionSet(view);
+            Lampa.Controller.collectionFocus(lastFocus || false, view);
+            Lampa.Controller.toggle(CONTROLLER);
+        }
 
         function addTile(item, isSection) {
             var tile = $('<div class="umedia-tile selector"></div>');
@@ -411,6 +410,7 @@
             });
 
             tile.on('hover:focus', function () {
+                lastFocus = $(this);
                 scroll.update($(this), true);
             });
 
@@ -484,7 +484,7 @@
                                 addTile(section, true);
                             });
 
-                            Lampa.Controller.toggle('content');
+                            focusCatalog();
                         }
                         catch (e) {
                             self.activity.loader(false);
@@ -545,14 +545,55 @@
                         addTile(movie, false);
                     });
 
-                    Lampa.Controller.toggle('content');
+                    focusCatalog();
                 });
             }
 
             return this.render();
         };
 
-        this.start = function () {};
+        this.start = function () {
+            Lampa.Controller.add(CONTROLLER, {
+                toggle: function () {
+                    var view = scroll.render();
+
+                    Lampa.Controller.collectionSet(view);
+                    Lampa.Controller.collectionFocus(
+                        lastFocus || false,
+                        view
+                    );
+                },
+
+                left: function () {
+                    Lampa.Controller.toggle('menu');
+                },
+
+                right: function () {
+                    if (window.Navigator) {
+                        window.Navigator.move('right');
+                    }
+                },
+
+                up: function () {
+                    if (window.Navigator &&
+                        window.Navigator.canmove('up')) {
+                        window.Navigator.move('up');
+                    }
+                },
+
+                down: function () {
+                    if (window.Navigator &&
+                        window.Navigator.canmove('down')) {
+                        window.Navigator.move('down');
+                    }
+                },
+
+                back: function () {
+                    Lampa.Activity.backward();
+                }
+            });
+        };
+
         this.stop = function () {};
 
         this.render = function () {
@@ -561,6 +602,12 @@
 
         this.destroy = function () {
             alive = false;
+
+            if (Lampa.Controller &&
+                Lampa.Controller.enabled &&
+                Lampa.Controller.enabled().name === CONTROLLER) {
+                Lampa.Controller.toggle('content');
+            }
 
             if (request && request.clear) {
                 request.clear();
@@ -647,7 +694,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.0 initialized');
+        console.log('[Umedia] Version 0.6.1 initialized');
     }
 
     if (window.appready) {
