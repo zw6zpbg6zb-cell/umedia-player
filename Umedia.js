@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v051';
+    var FLAG = 'umedia_lampa_v052';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -40,7 +40,9 @@
             done(error, xml);
         }
 
-        Lampa.Reguest.native(
+        var network = new Lampa.Reguest();
+
+        network.native(
             url,
 
             function (response) {
@@ -73,7 +75,7 @@
                 var message = 'Ошибка загрузки';
 
                 try {
-                    message = Lampa.Reguest.errorDecode(
+                    message = network.errorDecode(
                         xhr,
                         exception
                     );
@@ -295,7 +297,7 @@
 
     function init() {
         addMenuItem();
-        console.log('[Umedia] Version 0.5.1 initialized');
+        console.log('[Umedia] Version 0.5.2 initialized');
     }
 
     if (window.appready) {
