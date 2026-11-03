@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v065';
+    var FLAG = 'umedia_lampa_v066';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -237,10 +237,22 @@
         style.id = CSS_ID;
 
         style.textContent = `
+            .umedia-scroll {
+                display: flex;
+                flex: 0 0 auto;
+                width: 100%;
+                height: calc(100vh - 7.5em);
+                max-height: calc(100vh - 7.5em);
+                min-height: 0;
+                overflow: hidden;
+                box-sizing: border-box;
+            }
+
             .umedia-screen {
+                width: 100%;
+                min-height: 100%;
                 padding: 1.2em 2.2em 3em;
                 box-sizing: border-box;
-                min-height: 100%;
             }
 
             .umedia-heading {
@@ -346,6 +358,9 @@
             over: true,
             step: 480
         });
+
+        // Фиксируем высоту видимой области скролла.
+        scroll.render(true).classList.add('umedia-scroll');
 
         var root = $('<div class="umedia-screen"></div>');
         var grid = $('<div class="umedia-grid"></div>');
@@ -764,7 +779,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.5 initialized');
+        console.log('[Umedia] Version 0.6.6 initialized');
     }
 
     if (window.appready) {
