@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v052';
+    var FLAG = 'umedia_lampa_v053';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -30,7 +30,6 @@
         return el ? (el.textContent || '').trim() : '';
     }
 
-    // Запрос через штатную сеть Lampa
     function requestXml(url, done) {
         var completed = false;
 
@@ -75,10 +74,7 @@
                 var message = 'Ошибка загрузки';
 
                 try {
-                    message = network.errorDecode(
-                        xhr,
-                        exception
-                    );
+                    message = network.errorDecode(xhr, exception);
                 }
                 catch (e) {}
 
@@ -161,8 +157,6 @@
                 }),
 
                 onSelect: function (selected) {
-                    Lampa.Select.close();
-
                     var item = selected.item;
 
                     if (!item || !item.url) return;
@@ -177,10 +171,6 @@
                             true
                         );
                     }
-                },
-
-                onBack: function () {
-                    Lampa.Controller.toggle('content');
                 }
             });
         });
@@ -191,10 +181,6 @@
             title: 'Поиск в Umedia',
             placeholder: 'Название фильма',
             value: '',
-
-            onBack: function () {
-                Lampa.Controller.toggle('content');
-            },
 
             onSelect: function (value) {
                 var query = (value || '').trim();
@@ -259,18 +245,12 @@
                 }),
 
                 onSelect: function (selected) {
-                    Lampa.Select.close();
-
                     if (selected.section.search) {
                         openSearch();
                     }
                     else {
                         openMovies(selected.section);
                     }
-                },
-
-                onBack: function () {
-                    Lampa.Controller.toggle('content');
                 }
             });
         });
@@ -297,7 +277,7 @@
 
     function init() {
         addMenuItem();
-        console.log('[Umedia] Version 0.5.2 initialized');
+        console.log('[Umedia] Version 0.5.3 initialized');
     }
 
     if (window.appready) {
