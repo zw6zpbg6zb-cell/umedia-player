@@ -1,14 +1,12 @@
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v061';
+    var FLAG = 'umedia_lampa_v062';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
     var MENU_URL = 'https://umedia.click/tv.xml';
     var CSS_ID = 'umedia-catalog-style';
-
-    var CONTROLLER = 'umedia_catalog_content';
 
     var ICON = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6v2h3v1H7v-1h3v-2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v10h16V7H4z"/></svg>';
 
@@ -354,7 +352,6 @@
 
             Lampa.Controller.collectionSet(view);
             Lampa.Controller.collectionFocus(lastFocus || false, view);
-            Lampa.Controller.toggle(CONTROLLER);
         }
 
         function addTile(item, isSection) {
@@ -553,45 +550,37 @@
         };
 
         this.start = function () {
-            Lampa.Controller.add(CONTROLLER, {
+            Lampa.Controller.add('content', {
                 toggle: function () {
                     var view = scroll.render();
-
                     Lampa.Controller.collectionSet(view);
-                    Lampa.Controller.collectionFocus(
-                        lastFocus || false,
-                        view
-                    );
+                    Lampa.Controller.collectionFocus(lastFocus || false, view);
                 },
-
                 left: function () {
-                    Lampa.Controller.toggle('menu');
+                    if (Navigator.canmove('left')) {
+                        Navigator.move('left');
+                    }
+                    else {
+                        Lampa.Controller.toggle('menu');
+                    }
                 },
-
                 right: function () {
-                    if (window.Navigator) {
-                        window.Navigator.move('right');
-                    }
+                    if (Navigator.canmove('right')) Navigator.move('right');
                 },
-
                 up: function () {
-                    if (window.Navigator &&
-                        window.Navigator.canmove('up')) {
-                        window.Navigator.move('up');
-                    }
+                    if (Navigator.canmove('up')) Navigator.move('up');
                 },
-
                 down: function () {
-                    if (window.Navigator &&
-                        window.Navigator.canmove('down')) {
-                        window.Navigator.move('down');
-                    }
+                    if (Navigator.canmove('down')) Navigator.move('down');
                 },
-
                 back: function () {
                     Lampa.Activity.backward();
                 }
             });
+
+            Lampa.Controller.collectionSet(scroll.render());
+            Lampa.Controller.collectionFocus(lastFocus || false, scroll.render());
+            Lampa.Controller.toggle('content');
         };
 
         this.stop = function () {};
@@ -602,12 +591,6 @@
 
         this.destroy = function () {
             alive = false;
-
-            if (Lampa.Controller &&
-                Lampa.Controller.enabled &&
-                Lampa.Controller.enabled().name === CONTROLLER) {
-                Lampa.Controller.toggle('content');
-            }
 
             if (request && request.clear) {
                 request.clear();
@@ -694,7 +677,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.1 initialized');
+        console.log('[Umedia] Version 0.6.2 initialized');
     }
 
     if (window.appready) {
