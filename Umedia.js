@@ -1,7 +1,8 @@
+
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v067';
+    var FLAG = 'umedia_lampa_v068';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -113,78 +114,117 @@
             .toLowerCase();
     }
 
-    function parseMovies(xml) {
+    function secureImageUrl(url) {
+        url = (url || '').trim();
+
+        if (url.indexOf('//') === 0) {
+            return 'https:' + url;
+        }
+
+        if (/^http:\/\/umedia\.click\//i.test(url)) {
+            return url.replace(/^http:/i, 'https:');
+        }
+
+        return url;
+    }
+
+    function parsePlaylist(xml) {
         var grouped = {};
-        var result = [];
+        var movies = [];
+        var sections = [];
 
         channelsFrom(xml).forEach(function (channel) {
             var title = cleanHtml(textOf(channel, 'title'));
-            var url = textOf(channel, 'stream_url');
-            var poster = textOf(channel, 'logo');
+            var streamUrl = textOf(channel, 'stream_url');
+            var playlistUrl = textOf(channel, 'playlist_url');
+            var poster = secureImageUrl(textOf(channel, 'logo'));
             var description = textOf(channel, 'description');
+            var search = textOf(channel, 'search_on') === 'search';
 
-            if (!title || !url) return;
+            if (!title) return;
 
-            var key = normalizeTitle(title) || title.toLowerCase();
+            // В смешанных XML служебные пункты и фильмы находятся рядом.
+            // stream_url означает видеоматериал, а не папку.
+            if (streamUrl) {
+                var key = normalizeTitle(title) || title.toLowerCase();
 
-            var item = {
-                title: title,
-                url: url,
-                poster: poster,
-                description: description,
-                quality: qualityOf(title, url)
-            };
-
-            if (!grouped[key]) {
-                grouped[key] = {
+                var item = {
                     title: title,
+                    url: streamUrl.trim(),
                     poster: poster,
                     description: description,
-                    variants: []
+                    quality: qualityOf(title, streamUrl)
                 };
 
-                result.push(grouped[key]);
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        title: title,
+                        poster: poster,
+                        description: description,
+                        variants: []
+                    };
+
+                    movies.push(grouped[key]);
+                }
+
+                var group = grouped[key];
+
+                if (!group.poster && poster) {
+                    group.poster = poster;
+                }
+
+                if (!group.description && description) {
+                    group.description = description;
+                }
+
+                if (!group.variants.some(function (variant) {
+                    return variant.url === item.url;
+                })) {
+                    group.variants.push(item);
+                }
             }
-
-            var group = grouped[key];
-
-            if (!group.poster && poster) group.poster = poster;
-            if (!group.description && description) {
-                group.description = description;
-            }
-
-            if (!group.variants.some(function (variant) {
-                return variant.url === url;
-            })) {
-                group.variants.push(item);
+            else if (playlistUrl) {
+                sections.push({
+                    title: title,
+                    url: playlistUrl.trim(),
+                    logo: poster,
+                    description: description,
+                    search: search
+                });
             }
         });
 
-        result.forEach(function (movie) {
-            var order = {
-                '4K / UHD': 1,
-                'Full HD': 2,
-                'HD': 3,
-                'SD / DVD': 4,
-                'Видео': 5
-            };
+        var order = {
+            '4K / UHD': 1,
+            'Full HD': 2,
+            'HD': 3,
+            'SD / DVD': 4,
+            'Видео': 5
+        };
 
+        movies.forEach(function (movie) {
             movie.variants.sort(function (a, b) {
                 return (order[a.quality] || 9) -
                     (order[b.quality] || 9);
             });
         });
 
-        return result;
+        return {
+            movies: movies,
+            sections: sections
+        };
     }
 
     function playVariant(variant) {
-        if (!variant || typeof variant.url !== 'string' || !variant.url.trim()) {
+        if (!variant ||
+            typeof variant.url !== 'string' ||
+            !variant.url.trim()) {
             notify('Не найдена ссылка на видео', true);
             return;
         }
 
-        if (!Lampa.Player || typeof Lampa.Player.play !== 'function') {
+        if (!Lampa.Player ||
+            typeof Lampa.Player.play !== 'function') {
             notify('Не найден запуск плеера Lampa', true);
             return;
         }
@@ -307,40 +347,23 @@
                 justify-content: center;
                 position: relative;
                 overflow: hidden;
-                background:
-                    radial-gradient(circle at 72% 20%, rgba(255,255,255,.19), transparent 36%),
-                    linear-gradient(145deg, var(--umedia-art-a), var(--umedia-art-b));
+                background: linear-gradient(145deg, #252b36, #111720);
             }
 
-            .umedia-section-art:before,
-            .umedia-section-art:after {
-                content: '';
-                position: absolute;
-                border: 1px solid rgba(255,255,255,.13);
-                border-radius: 50%;
-                width: 11em;
-                height: 11em;
-                right: -5em;
-                bottom: -5em;
+            .umedia-section-logo {
+                display: block;
+                width: 48%;
+                height: 48%;
+                object-fit: contain;
+                margin-bottom: 1.4em;
+                filter: drop-shadow(0 .2em .5em rgba(0,0,0,.28));
             }
 
-            .umedia-section-art:after {
-                width: 7em;
-                height: 7em;
-                right: auto;
-                bottom: auto;
-                left: -3.5em;
-                top: -3.5em;
-                border-color: rgba(255,255,255,.09);
-            }
-
-            .umedia-section-art svg {
-                position: relative;
-                z-index: 1;
-                width: 34%;
-                max-width: 4.2em;
-                height: auto;
-                filter: drop-shadow(0 .25em .45em rgba(0,0,0,.22));
+            .umedia-section-fallback {
+                color: rgba(255,255,255,.75);
+                font-size: 3.4em;
+                line-height: 1;
+                margin-bottom: .25em;
             }
 
             .umedia-section-art-label {
@@ -355,18 +378,6 @@
                 line-height: 1.12;
                 text-align: left;
                 text-shadow: 0 1px 5px rgba(0,0,0,.3);
-            }
-
-            .umedia-section-art-kicker {
-                position: absolute;
-                z-index: 1;
-                top: .8em;
-                left: .75em;
-                color: rgba(255,255,255,.72);
-                font-size: .55em;
-                font-weight: 700;
-                letter-spacing: .16em;
-                text-transform: uppercase;
             }
 
             .umedia-poster-empty {
@@ -456,66 +467,28 @@
         }
 
         function sectionArtwork(item, poster) {
-            var name = (item.title || '').toLowerCase();
+            poster.addClass('umedia-section-art');
 
-            var art = {
-                icon: '<path d="M10 3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-8l-2-4Z"/><path d="M2 11h20"/><path d="m10 15 5 3-5 3v-6Z"/>',
-                color: ['#294c72', '#14263f'],
-                kicker: 'UMEDIA'
-            };
-
-            if (/поиск|search/.test(name)) {
-                art = {
-                    icon: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/>',
-                    color: ['#315f79', '#193447'],
-                    kicker: 'FIND'
-                };
+            if (item.logo) {
+                $('<img class="umedia-section-logo">')
+                    .attr('src', secureImageUrl(item.logo))
+                    .on('error', function () {
+                        $(this).remove();
+                        poster.append(
+                            '<div class="umedia-section-fallback">▦</div>'
+                        );
+                    })
+                    .appendTo(poster);
             }
-            else if (/нов|new|прем|свеж/.test(name)) {
-                art = {
-                    icon: '<path d="m12 2 2.7 6.2L21 11l-6.3 2.8L12 20l-2.7-6.2L3 11l6.3-2.8L12 2Z"/><path d="m19 15 1.2 2.8L23 19l-2.8 1.2L19 23l-1.2-2.8L15 19l2.8-1.2L19 15Z"/>',
-                    color: ['#8b5637', '#4c2d28'],
-                    kicker: 'JUST ADDED'
-                };
+            else {
+                poster.append(
+                    '<div class="umedia-section-fallback">▦</div>'
+                );
             }
-            else if (/избран|favorite|любим/.test(name)) {
-                art = {
-                    icon: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/>',
-                    color: ['#784b65', '#3d2a45'],
-                    kicker: 'YOUR LIST'
-                };
-            }
-            else if (/сериал|series|тв/.test(name)) {
-                art = {
-                    icon: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="m8 21 4-4 4 4M8 9h8M8 13h5"/>',
-                    color: ['#376c70', '#1c3b4a'],
-                    kicker: 'SERIES'
-                };
-            }
-            else if (/мульт|дет|kids|анимац/.test(name)) {
-                art = {
-                    icon: '<circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01M8.5 15s1.2 2 3.5 2 3.5-2 3.5-2"/>',
-                    color: ['#65754b', '#344633'],
-                    kicker: 'FAMILY'
-                };
-            }
-            else if (/фильм|кино|movie/.test(name)) {
-                art = {
-                    icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>',
-                    color: ['#4e5d82', '#252f50'],
-                    kicker: 'MOVIES'
-                };
-            }
-
-            poster.addClass('umedia-section-art').css({
-                '--umedia-art-a': art.color[0],
-                '--umedia-art-b': art.color[1]
-            });
 
             poster.append(
-                $('<div class="umedia-section-art-kicker"></div>').text(art.kicker),
-                $('<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"></svg>').html(art.icon),
-                $('<div class="umedia-section-art-label"></div>').text(item.title)
+                $('<div class="umedia-section-art-label"></div>')
+                    .text(item.title)
             );
         }
 
@@ -531,7 +504,7 @@
             }
             else if (item.poster) {
                 $('<img loading="lazy">')
-                    .attr('src', item.poster)
+                    .attr('src', secureImageUrl(item.poster))
                     .on('error', function () {
                         $(this).remove();
 
@@ -637,6 +610,9 @@
                                     sections.push({
                                         title: title,
                                         url: url,
+                                        logo: secureImageUrl(
+                                            textOf(channel, 'logo')
+                                        ),
                                         search: search
                                     });
                                 }
@@ -645,7 +621,10 @@
                             self.activity.loader(false);
 
                             if (!sections.length) {
-                                notify('В tv.xml не найдены разделы playlist_url', true);
+                                notify(
+                                    'В tv.xml не найдены разделы playlist_url',
+                                    true
+                                );
                                 self.activity.empty();
                                 return;
                             }
@@ -699,55 +678,29 @@
                         return;
                     }
 
-                    var nestedSections = [];
+                    var parsed = parsePlaylist(xml);
 
-                    channelsFrom(xml).forEach(function (channel) {
-                        var sectionTitle = cleanHtml(
-                            textOf(channel, 'title')
-                        );
-
-                        var sectionUrl = textOf(
-                            channel,
-                            'playlist_url'
-                        );
-
-                        var search = textOf(
-                            channel,
-                            'search_on'
-                        ) === 'search';
-
-                        if (sectionTitle && (sectionUrl || search)) {
-                            nestedSections.push({
-                                title: sectionTitle,
-                                url: sectionUrl,
-                                search: search
-                            });
-                        }
+                    // Показываем служебные ссылки и реальные фильмы вместе.
+                    parsed.sections.forEach(function (section) {
+                        addTile(section, true);
                     });
 
-                    if (nestedSections.length) {
-                        nestedSections.forEach(function (section) {
-                            addTile(section, true);
-                        });
+                    parsed.movies.forEach(function (movie) {
+                        addTile(movie, false);
+                    });
 
-                        focusCatalog();
-                        return;
-                    }
-
-                    var movies = parseMovies(xml);
-
-                    if (!movies.length) {
+                    if (!parsed.sections.length && !parsed.movies.length) {
                         notify(
-                            'В ответе Umedia не найдены фильмы со stream_url',
+                            'В XML не найдены записи с playlist_url или stream_url',
                             true
                         );
-
                         self.activity.empty();
                         return;
                     }
 
-                    movies.forEach(function (movie) {
-                        addTile(movie, false);
+                    console.log('[Umedia] Playlist parsed:', {
+                        sections: parsed.sections.length,
+                        movies: parsed.movies.length
                     });
 
                     focusCatalog();
@@ -763,7 +716,10 @@
                     var view = scroll.render();
 
                     Lampa.Controller.collectionSet(view);
-                    Lampa.Controller.collectionFocus(lastFocus || false, view);
+                    Lampa.Controller.collectionFocus(
+                        lastFocus || false,
+                        view
+                    );
                 },
 
                 left: function () {
@@ -805,7 +761,10 @@
             });
 
             Lampa.Controller.collectionSet(scroll.render());
-            Lampa.Controller.collectionFocus(lastFocus || false, scroll.render());
+            Lampa.Controller.collectionFocus(
+                lastFocus || false,
+                scroll.render()
+            );
             Lampa.Controller.toggle('content');
         };
 
@@ -848,8 +807,12 @@
     }
 
     function openSearch(section) {
-        if (!Lampa.Input || typeof Lampa.Input.edit !== 'function') {
-            notify('В этой сборке Lampa недоступен штатный ввод текста', true);
+        if (!Lampa.Input ||
+            typeof Lampa.Input.edit !== 'function') {
+            notify(
+                'В этой сборке Lampa недоступен штатный ввод текста',
+                true
+            );
             return;
         }
 
@@ -908,7 +871,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.7 initialized');
+        console.log('[Umedia] Version 0.6.8 initialized');
     }
 
     if (window.appready) {
