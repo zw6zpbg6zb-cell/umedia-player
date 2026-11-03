@@ -1,8 +1,7 @@
-
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v066';
+    var FLAG = 'umedia_lampa_v067';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -300,6 +299,76 @@
                 object-fit: cover;
             }
 
+            .umedia-section-art {
+                height: 100%;
+                min-height: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                overflow: hidden;
+                background:
+                    radial-gradient(circle at 72% 20%, rgba(255,255,255,.19), transparent 36%),
+                    linear-gradient(145deg, var(--umedia-art-a), var(--umedia-art-b));
+            }
+
+            .umedia-section-art:before,
+            .umedia-section-art:after {
+                content: '';
+                position: absolute;
+                border: 1px solid rgba(255,255,255,.13);
+                border-radius: 50%;
+                width: 11em;
+                height: 11em;
+                right: -5em;
+                bottom: -5em;
+            }
+
+            .umedia-section-art:after {
+                width: 7em;
+                height: 7em;
+                right: auto;
+                bottom: auto;
+                left: -3.5em;
+                top: -3.5em;
+                border-color: rgba(255,255,255,.09);
+            }
+
+            .umedia-section-art svg {
+                position: relative;
+                z-index: 1;
+                width: 34%;
+                max-width: 4.2em;
+                height: auto;
+                filter: drop-shadow(0 .25em .45em rgba(0,0,0,.22));
+            }
+
+            .umedia-section-art-label {
+                position: absolute;
+                z-index: 1;
+                left: .65em;
+                right: .65em;
+                bottom: .85em;
+                color: rgba(255,255,255,.96);
+                font-size: .9em;
+                font-weight: 700;
+                line-height: 1.12;
+                text-align: left;
+                text-shadow: 0 1px 5px rgba(0,0,0,.3);
+            }
+
+            .umedia-section-art-kicker {
+                position: absolute;
+                z-index: 1;
+                top: .8em;
+                left: .75em;
+                color: rgba(255,255,255,.72);
+                font-size: .55em;
+                font-weight: 700;
+                letter-spacing: .16em;
+                text-transform: uppercase;
+            }
+
             .umedia-poster-empty {
                 height: 100%;
                 display: flex;
@@ -359,7 +428,6 @@
             step: 480
         });
 
-        // Фиксируем высоту видимой области скролла.
         scroll.render(true).classList.add('umedia-scroll');
 
         var root = $('<div class="umedia-screen"></div>');
@@ -387,6 +455,70 @@
             Lampa.Controller.collectionFocus(lastFocus || false, view);
         }
 
+        function sectionArtwork(item, poster) {
+            var name = (item.title || '').toLowerCase();
+
+            var art = {
+                icon: '<path d="M10 3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-8l-2-4Z"/><path d="M2 11h20"/><path d="m10 15 5 3-5 3v-6Z"/>',
+                color: ['#294c72', '#14263f'],
+                kicker: 'UMEDIA'
+            };
+
+            if (/поиск|search/.test(name)) {
+                art = {
+                    icon: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/>',
+                    color: ['#315f79', '#193447'],
+                    kicker: 'FIND'
+                };
+            }
+            else if (/нов|new|прем|свеж/.test(name)) {
+                art = {
+                    icon: '<path d="m12 2 2.7 6.2L21 11l-6.3 2.8L12 20l-2.7-6.2L3 11l6.3-2.8L12 2Z"/><path d="m19 15 1.2 2.8L23 19l-2.8 1.2L19 23l-1.2-2.8L15 19l2.8-1.2L19 15Z"/>',
+                    color: ['#8b5637', '#4c2d28'],
+                    kicker: 'JUST ADDED'
+                };
+            }
+            else if (/избран|favorite|любим/.test(name)) {
+                art = {
+                    icon: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/>',
+                    color: ['#784b65', '#3d2a45'],
+                    kicker: 'YOUR LIST'
+                };
+            }
+            else if (/сериал|series|тв/.test(name)) {
+                art = {
+                    icon: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="m8 21 4-4 4 4M8 9h8M8 13h5"/>',
+                    color: ['#376c70', '#1c3b4a'],
+                    kicker: 'SERIES'
+                };
+            }
+            else if (/мульт|дет|kids|анимац/.test(name)) {
+                art = {
+                    icon: '<circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01M8.5 15s1.2 2 3.5 2 3.5-2 3.5-2"/>',
+                    color: ['#65754b', '#344633'],
+                    kicker: 'FAMILY'
+                };
+            }
+            else if (/фильм|кино|movie/.test(name)) {
+                art = {
+                    icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>',
+                    color: ['#4e5d82', '#252f50'],
+                    kicker: 'MOVIES'
+                };
+            }
+
+            poster.addClass('umedia-section-art').css({
+                '--umedia-art-a': art.color[0],
+                '--umedia-art-b': art.color[1]
+            });
+
+            poster.append(
+                $('<div class="umedia-section-art-kicker"></div>').text(art.kicker),
+                $('<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"></svg>').html(art.icon),
+                $('<div class="umedia-section-art-label"></div>').text(item.title)
+            );
+        }
+
         function addTile(item, isSection) {
             var tile = $('<div class="umedia-tile selector"></div>');
             var poster = $('<div class="umedia-poster"></div>');
@@ -394,7 +526,10 @@
             var title = $('<div class="umedia-tile-title"></div>')
                 .text(item.title);
 
-            if (item.poster) {
+            if (isSection) {
+                sectionArtwork(item, poster);
+            }
+            else if (item.poster) {
                 $('<img loading="lazy">')
                     .attr('src', item.poster)
                     .on('error', function () {
@@ -413,7 +548,10 @@
             }
 
             tile.append(poster);
-            tile.append(title);
+
+            if (!isSection) {
+                tile.append(title);
+            }
 
             if (!isSection && item.variants) {
                 var label = item.variants.length > 1
@@ -495,14 +633,11 @@
                                     'search_on'
                                 ) === 'search';
 
-                                var poster = textOf(channel, 'logo');
-
                                 if (title && (url || search)) {
                                     sections.push({
                                         title: title,
                                         url: url,
-                                        search: search,
-                                        poster: poster
+                                        search: search
                                     });
                                 }
                             });
@@ -576,11 +711,6 @@
                             'playlist_url'
                         );
 
-                        var sectionPoster = textOf(
-                            channel,
-                            'logo'
-                        );
-
                         var search = textOf(
                             channel,
                             'search_on'
@@ -590,7 +720,6 @@
                             nestedSections.push({
                                 title: sectionTitle,
                                 url: sectionUrl,
-                                poster: sectionPoster,
                                 search: search
                             });
                         }
@@ -779,7 +908,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.6 initialized');
+        console.log('[Umedia] Version 0.6.7 initialized');
     }
 
     if (window.appready) {
