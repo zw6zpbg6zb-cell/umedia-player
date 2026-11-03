@@ -1,7 +1,8 @@
+
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v062';
+    var FLAG = 'umedia_lampa_v063';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -526,11 +527,57 @@
                         return;
                     }
 
+                    // Сначала проверяем, содержит ли XML вложенные
+                    // разделы с playlist_url.
+                    var nestedSections = [];
+
+                    channelsFrom(xml).forEach(function (channel) {
+                        var sectionTitle = cleanHtml(
+                            textOf(channel, 'title')
+                        );
+
+                        var sectionUrl = textOf(
+                            channel,
+                            'playlist_url'
+                        );
+
+                        var sectionPoster = textOf(
+                            channel,
+                            'logo'
+                        );
+
+                        var search = textOf(
+                            channel,
+                            'search_on'
+                        ) === 'search';
+
+                        if (sectionTitle && (sectionUrl || search)) {
+                            nestedSections.push({
+                                title: sectionTitle,
+                                url: sectionUrl,
+                                poster: sectionPoster,
+                                search: search
+                            });
+                        }
+                    });
+
+                    // Если есть вложенные категории — показываем их,
+                    // а не пытаемся отобразить их как фильмы.
+                    if (nestedSections.length) {
+                        nestedSections.forEach(function (section) {
+                            addTile(section, true);
+                        });
+
+                        focusCatalog();
+                        return;
+                    }
+
+                    // Если вложенных категорий нет, ищем фильмы.
                     var movies = parseMovies(xml);
 
                     if (!movies.length) {
                         notify(
-                            'В разделе не найдены фильмы с прямыми ссылками',
+                            'Каталог загружен, но фильмы не распознаны: нет записей channel со stream_url',
                             true
                         );
 
@@ -677,7 +724,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.2 initialized');
+        console.log('[Umedia] Version 0.6.3 initialized');
     }
 
     if (window.appready) {
