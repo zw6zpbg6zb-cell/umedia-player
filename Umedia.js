@@ -2,94 +2,35 @@
 (function () {
     'use strict';
 
-    var ID = 'umedia_lampa_plugin';
+    if (window.umedia_test_fixed) return;
+    window.umedia_test_fixed = true;
 
-    if (window[ID]) return;
-    window[ID] = true;
-
-    var VERSION = '0.3.1';
-
-    var ICON = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6v2h3v1H7v-1h3v-2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v10h16V7H4z"/></svg>';
-
-    var initialized = false;
-
-    function notify(text) {
-        try {
-            Lampa.Noty.show(text);
-        } catch (e) {
-            console.log('[Umedia]', text);
-        }
-    }
+    var icon = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6v2h3v1H7v-1h3v-2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v10h16V7H4z"/></svg>';
 
     function openUmedia() {
-        notify('Umedia работает! Версия ' + VERSION);
+        Lampa.Noty.show('Umedia успешно запущен!');
     }
 
     function init() {
-        if (initialized) return;
-        initialized = true;
+        if (window.umedia_button_added) return;
 
-        console.log('[Umedia] Инициализация');
-
-        // Сначала независимо добавляем кнопку меню
-        try {
-            if (!Lampa.Menu || !Lampa.Menu.addButton) {
-                throw new Error('Lampa.Menu.addButton недоступен');
-            }
-
-            Lampa.Menu.addButton(
-                ICON,
-                'Umedia',
-                openUmedia
-            );
-
-            console.log('[Umedia] Кнопка добавлена');
-        } catch (e) {
-            console.log('[Umedia] Ошибка меню:', e);
-            notify('Umedia: ошибка меню — ' + e.message);
+        if (!Lampa.Menu || !Lampa.Menu.addButton) {
+            console.log('[Umedia] Menu API недоступен');
+            return;
         }
 
-        // Регистрацию компонента выполняем отдельно
-        try {
-            if (Lampa.Component && Lampa.Component.add) {
-                Lampa.Component.add('umedia_test', function () {
-                    return {
-                        create: function () {
-                            this.html = $('<div class="about">
-                                <div class="about__title">Umedia</div>
-                                <div class="about__text">Плагин запущен</div>
-                            </div>');
-                        },
-                        render: function () {
-                            return this.html;
-                        },
-                        start: function () {},
-                        pause: function () {},
-                        stop: function () {},
-                        destroy: function () {}
-                    };
-                });
-            }
-        } catch (e) {
-            console.log('[Umedia] Ошибка компонента:', e);
-        }
+        window.umedia_button_added = true;
 
-        notify('Umedia: инициализация завершена');
+        Lampa.Menu.addButton(icon, 'Umedia', openUmedia);
+
+        console.log('[Umedia] Кнопка добавлена');
     }
 
-    function start() {
-        if (window.appready) {
-            init();
-        } else if (Lampa.Listener && Lampa.Listener.follow) {
-            Lampa.Listener.follow('app', function (event) {
-                if (event.type === 'ready') init();
-            });
-        }
-    }
-
-    try {
-        start();
-    } catch (e) {
-        console.log('[Umedia] Ошибка запуска:', e);
+    if (window.appready) {
+        init();
+    } else {
+        Lampa.Listener.follow('app', function (event) {
+            if (event.type === 'ready') init();
+        });
     }
 })();
