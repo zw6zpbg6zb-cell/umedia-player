@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v063';
+    var FLAG = 'umedia_lampa_v064';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -433,6 +433,10 @@
                                 ? response
                                 : response.responseText || '';
 
+                            if (!raw) {
+                                throw new Error('Umedia вернул пустой ответ');
+                            }
+
                             var xml = new DOMParser().parseFromString(
                                 raw,
                                 'text/xml'
@@ -474,6 +478,7 @@
                             self.activity.loader(false);
 
                             if (!sections.length) {
+                                notify('В tv.xml не найдены разделы playlist_url', true);
                                 self.activity.empty();
                                 return;
                             }
@@ -527,8 +532,6 @@
                         return;
                     }
 
-                    // Сначала проверяем, содержит ли XML вложенные
-                    // разделы с playlist_url.
                     var nestedSections = [];
 
                     channelsFrom(xml).forEach(function (channel) {
@@ -561,8 +564,6 @@
                         }
                     });
 
-                    // Если есть вложенные категории — показываем их,
-                    // а не пытаемся отобразить их как фильмы.
                     if (nestedSections.length) {
                         nestedSections.forEach(function (section) {
                             addTile(section, true);
@@ -572,12 +573,11 @@
                         return;
                     }
 
-                    // Если вложенных категорий нет, ищем фильмы.
                     var movies = parseMovies(xml);
 
                     if (!movies.length) {
                         notify(
-                            'Каталог загружен, но фильмы не распознаны: нет записей channel со stream_url',
+                            'В ответе Umedia не найдены фильмы со stream_url',
                             true
                         );
 
@@ -669,27 +669,34 @@
     }
 
     function openSearch(section) {
-        Lampa.Input.show({
+        // Штатный редактор текста Lampa 3.3.x.
+        // Lampa.Input.show() в этой версии не существует.
+        if (!Lampa.Input || typeof Lampa.Input.edit !== 'function') {
+            notify('В этой сборке Lampa недоступен штатный ввод текста', true);
+            return;
+        }
+
+        Lampa.Input.edit({
             title: section.title || 'Поиск в Umedia',
-            placeholder: 'Название фильма',
             value: '',
+            free: true,
+            nosave: true,
+            keyboard: 'lampa'
+        }, function (value) {
+            var query = (value || '').trim();
 
-            onSelect: function (value) {
-                var query = (value || '').trim();
+            if (!query) return;
 
-                if (!query) return;
+            var base = section.url ||
+                'https://umedia.click/modules/tv/films.php?searchType=filmName';
 
-                var base = section.url ||
-                    'https://umedia.click/modules/tv/films.php?searchType=filmName';
+            var separator = base.indexOf('?') >= 0 ? '&' : '?';
 
-                var separator = base.indexOf('?') >= 0 ? '&' : '?';
-
-                openMovies({
-                    title: 'Поиск: ' + query,
-                    url: base + separator + 'search=' +
-                        encodeURIComponent(query)
-                });
-            }
+            openMovies({
+                title: 'Поиск: ' + query,
+                url: base + separator + 'search=' +
+                    encodeURIComponent(query)
+            });
         });
     }
 
@@ -724,7 +731,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.3 initialized');
+        console.log('[Umedia] Version 0.6.4 initialized');
     }
 
     if (window.appready) {
