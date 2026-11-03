@@ -2,242 +2,174 @@
 (function () {
     'use strict';
 
-    if (window.umedia_lampa_ready) return;
-    window.umedia_lampa_ready = true;
+    // Umedia для Lampa 3.3.4
+    // Версия 0.2.0
+
+    if (window.umedia_lampa_plugin_loaded) return;
+    window.umedia_lampa_plugin_loaded = true;
 
     var BASE = 'https://umedia.click/';
-    var MENU_ICON = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h16v3H4zm0 6h16v3H4zm0 6h16v3H4z"/></svg>';
+    var MENU_URL = BASE + 'tv.xml';
+    var request = new Lampa.Reguest();
 
-    var sections = [
-        {
-            title: 'ПОИСК ПО НАЗВАНИЮ',
-            url: 'modules/tv/search.php?searchType=fileTitle',
-            search: true
-        },
-        {
-            title: 'НОВОЕ СЕГОДНЯ',
-            url: 'modules/tv/search.php?searchType=fileToday'
-        },
-        {
-            title: 'НОВОЕ ЗА НЕДЕЛЮ',
-            url: 'modules/tv/search.php?searchType=file7day'
-        },
-        {
-            title: 'КОЛЛЕКЦИИ',
-            url: 'tv_playlist/film_collections.xml'
-        },
-        {
-            title: 'ИЗБРАННОЕ',
-            url: 'modules/tv/favorites.php',
-            favorites: true
-        },
-        {
-            title: 'ФИЛЬМЫ ULTRA HD',
-            url: 'tv_playlist/uhd.xml'
-        },
-        {
-            title: 'ФИЛЬМЫ',
-            url: 'tv_playlist/films.xml'
-        },
-        {
-            title: 'МУЛЬТФИЛЬМЫ',
-            url: 'tv_playlist/film_animation.xml'
-        },
-        {
-            title: 'СЕРИАЛЫ',
-            url: 'tv_playlist/serials.xml'
+    function clean(value) {
+        return String(value || '').trim();
+    }
+
+    function textOf(node, tag) {
+        var el = node.getElementsByTagName(tag)[0];
+        return el ? clean(el.textContent) : '';
+    }
+
+    function parseXML(source) {
+        var doc = new DOMParser().parseFromString(
+            source,
+            'text/xml'
+        );
+
+        if (doc.getElementsByTagName('parsererror').length) {
+            throw new Error('Не удалось разобрать XML');
         }
-    ];
+
+        var channels = Array.prototype.slice.call(
+            doc.getElementsByTagName('channel')
+        );
+
+        return channels.map(function (channel) {
+            return {
+                title: textOf(channel, 'title')
+                    .replace(/<[^>]*>/g, '')
+                    .trim(),
+                logo: textOf(channel, 'logo'),
+                description: textOf(channel, 'description'),
+                playlist: textOf(channel, 'playlist_url'),
+                stream: textOf(channel, 'stream_url')
+            };
+        }).filter(function (item) {
+            return item.title || item.playlist || item.stream;
+        });
+    }
 
     function notify(message) {
-        if (window.Lampa && Lampa.Noty) {
+        if (Lampa.Noty && Lampa.Noty.show) {
             Lampa.Noty.show(message);
         }
     }
 
-    function request(url, success, error) {
-        var network = new Lampa.Reguest();
-        network.timeout(20000);
+    function showError(error) {
+        var message = error && error.message
+            ? error.message
+            : String(error || 'Неизвестная ошибка');
 
-        network.silent(
+        notify('Umedia: ' + message);
+    }
+
+    function requestXML(url, callback) {
+        request.get(
             url,
-            success,
-            function (a) {
-                console.log('[Umedia] Ошибка запроса:', url, a);
-                if (error) error(a);
-                else notify('Не удалось загрузить Umedia');
+            function (response) {
+                try {
+                    var source = typeof response === 'string'
+                        ? response
+                        : (response && response.responseText
+                            ? response.responseText
+                            : '');
+
+                    if (!source) {
+                        throw new Error('Пустой ответ сервера');
+                    }
+
+                    callback(parseXML(source));
+                } catch (error) {
+                    showError(error);
+                }
             },
-            false,
-            { dataType: 'text' }
+            function (error) {
+                showError(error || 'Ошибка загрузки Umedia');
+            }
         );
     }
 
-    function absoluteURL(url) {
-        if (!url) return '';
-
-        url = url.trim().replace(/#.*$/, '');
-
-        if (url.indexOf('//') === 0) {
-            url = 'https:' + url;
-        }
-
-        if (url.indexOf('http://') === 0) {
-            url = url.replace('http://', 'https://');
-        }
-
-        if (url.charAt(0) === '/') {
-            url = BASE.replace(/\/$/, '') + url;
-        }
-
-        return url;
-    }
-
-    function parseXML(text) {
-        var xml = new DOMParser().parseFromString(text, 'text/xml');
-
-        if (xml.getElementsByTagName('parsererror').length) {
-            throw new Error('Некорректный XML');
-        }
-
-        var nodes = xml.getElementsByTagName('channel');
-        var result = [];
-
-        for (var i = 0; i < nodes.length; i++) {
-            var node = nodes[i];
-
-            function field(name) {
-                var el = node.getElementsByTagName(name)[0];
-                return el ? (el.textContent || '').trim() : '';
-            }
-
-            var item = {
-                title: field('title'),
-                logo: absoluteURL(field('logo')),
-                description: field('description'),
-                url: absoluteURL(field('playlist_url')),
-                stream: absoluteURL(field('stream_url')),
-                year: '',
-                quality: ''
-            };
-
-            if (item.title && (item.url || item.stream)) {
-                result.push(item);
-            }
-        }
-
-        return result;
-    }
-
-    function showItems(items, title) {
-        if (!items.length) {
-            notify('В этом разделе пока нет записей');
-            return;
-        }
-
-        var list = items.map(function (item) {
-            return {
-                title: item.title.replace(/<[^>]*>/g, '').trim(),
-                item: item
-            };
-        });
-
-        Lampa.Select.show({
-            title: title,
-            items: list,
-            onSelect: function (selected) {
-                var item = selected.item;
-
-                if (item.stream) {
-                    play(item);
-                } else if (item.url) {
-                    loadCatalog(item.url, item.title);
-                } else {
-                    notify('Для этой записи пока нет ссылки на видео');
-                }
-            },
-            onBack: function () {
-                openMenu();
-            }
-        });
-    }
-
     function play(item) {
-        if (!item.stream) {
-            notify('Прямая ссылка на видео не найдена');
-            return;
-        }
+        if (!item.stream) return;
 
         Lampa.Player.play({
             url: item.stream,
-            title: item.title,
+            title: item.title || 'Umedia',
             source: 'Umedia'
         });
     }
 
-    function loadCatalog(url, title) {
-        notify('Загружаем: ' + title);
-
-        request(url, function (response) {
-            try {
-                var items = parseXML(response);
-                console.log('[Umedia] Загружено записей:', items.length, url);
-                showItems(items, title);
-            } catch (e) {
-                console.log('[Umedia] Ошибка XML:', e);
-                notify('Не удалось разобрать каталог Umedia');
+    function openFeed(url, title) {
+        requestXML(url, function (channels) {
+            if (!channels.length) {
+                notify('В этом разделе пока нет записей');
+                return;
             }
+
+            var items = channels.map(function (channel) {
+                return {
+                    title: channel.title || 'Без названия',
+                    subtitle: channel.stream
+                        ? 'Запустить'
+                        : 'Открыть раздел',
+                    item: channel
+                };
+            });
+
+            Lampa.Select.show({
+                title: title || 'Umedia',
+                items: items,
+
+                onSelect: function (selected) {
+                    var item = selected && selected.item
+                        ? selected.item
+                        : null;
+
+                    if (!item) return;
+
+                    if (item.stream) {
+                        play(item);
+                    } else if (item.playlist) {
+                        openFeed(item.playlist, item.title);
+                    } else {
+                        notify(
+                            'Нет ссылки на плейлист или видео'
+                        );
+                    }
+                }
+            });
         });
     }
 
-    function openSection(section) {
-        if (section.search) {
-            notify('Поиск подключим после проверки параметров формы Umedia');
+    function addButton() {
+        if (!Lampa.Menu || !Lampa.Menu.addButton) {
+            notify('Не найдено меню Lampa');
             return;
         }
 
-        if (section.favorites) {
-            notify('Для избранного нужен персональный код OTTPlayer. Добавим его в настройки.');
-            return;
-        }
-
-        loadCatalog(BASE + section.url, section.title);
-    }
-
-    function openMenu() {
-        var items = sections.map(function (section) {
-            return {
-                title: section.title,
-                section: section
-            };
-        });
-
-        Lampa.Select.show({
-            title: 'Umedia',
-            items: items,
-            onSelect: function (selected) {
-                openSection(selected.section);
+        Lampa.Menu.addButton(
+            'u',
+            'Umedia',
+            function () {
+                openFeed(MENU_URL, 'Umedia');
             }
-        });
+        );
     }
 
     function init() {
-        Lampa.Menu.addButton(
-            MENU_ICON,
-            'Umedia',
-            openMenu
-        );
-
-        console.log('[Umedia] Плагин загружен');
-        notify('Плагин Umedia подключён');
+        if (!window.Lampa) return;
+        addButton();
     }
 
     if (window.appready) {
         init();
-    } else {
+    } else if (Lampa.Listener && Lampa.Listener.follow) {
         Lampa.Listener.follow('app', function (event) {
-            if (event.type === 'ready') init();
+            if (event.type === 'ready') {
+                init();
+            }
         });
     }
-
 })();
 
