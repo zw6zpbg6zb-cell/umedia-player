@@ -1,8 +1,7 @@
-
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v068';
+    var FLAG = 'umedia_lampa_v069';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -143,8 +142,6 @@
 
             if (!title) return;
 
-            // В смешанных XML служебные пункты и фильмы находятся рядом.
-            // stream_url означает видеоматериал, а не папку.
             if (streamUrl) {
                 var key = normalizeTitle(title) || title.toLowerCase();
 
@@ -277,152 +274,212 @@
 
         style.textContent = `
             .umedia-scroll {
-                display: flex;
-                flex: 0 0 auto;
-                width: 100%;
-                height: calc(100vh - 7.5em);
-                max-height: calc(100vh - 7.5em);
-                min-height: 0;
-                overflow: hidden;
-                box-sizing: border-box;
+                display:flex;
+                flex:0 0 auto;
+                width:100%;
+                height:calc(100vh - 7.5em);
+                max-height:calc(100vh - 7.5em);
+                min-height:0;
+                overflow:hidden;
+                box-sizing:border-box;
+                contain:layout paint;
             }
 
             .umedia-screen {
-                width: 100%;
-                min-height: 100%;
-                padding: 1.2em 2.2em 3em;
-                box-sizing: border-box;
+                width:100%;
+                min-height:100%;
+                padding:1.35em 2.2em 3em;
+                box-sizing:border-box;
+                background:radial-gradient(
+                    ellipse at 48% 0%,
+                    rgba(42,66,112,.22),
+                    transparent 58%
+                );
             }
 
             .umedia-heading {
-                font-size: 1.45em;
-                font-weight: 600;
-                margin: 0 0 1.1em;
-                color: var(--color-white, #fff);
+                font-size:1.55em;
+                font-weight:700;
+                letter-spacing:-.025em;
+                margin:0 0 1.15em;
+                color:#fff;
+                text-shadow:0 .12em .5em rgba(0,0,0,.35);
             }
 
             .umedia-grid {
-                display: grid;
-                grid-template-columns: repeat(6, minmax(0, 1fr));
-                gap: 1.1em .8em;
-                padding-bottom: 3em;
+                display:grid;
+                grid-template-columns:repeat(6,minmax(0,1fr));
+                gap:1.25em .95em;
+                padding:.25em .2em 3em;
+                align-items:start;
             }
 
             .umedia-tile {
-                min-width: 0;
-                position: relative;
-                border-radius: .35em;
-                overflow: hidden;
-                background: rgba(255,255,255,.06);
-                outline: 0 solid transparent;
-                transform: scale(1);
-                transition: transform .12s, outline .12s;
+                min-width:0;
+                position:relative;
+                border-radius:.72em;
+                overflow:hidden;
+                background:#101722;
+                border:1px solid rgba(255,255,255,.10);
+                box-shadow:0 .35em 1.1em rgba(0,0,0,.28);
+                outline:0 solid transparent;
+                z-index:0;
+                -webkit-backface-visibility:hidden;
+                backface-visibility:hidden;
             }
 
             .umedia-tile.focus {
-                outline: .18em solid #fff;
-                transform: scale(1.045);
-                z-index: 2;
+                border:2px solid rgba(255,255,255,.98);
+                outline:2px solid rgba(117,157,255,.9);
+                box-shadow:
+                    0 0 0 .22em rgba(101,139,255,.22),
+                    0 0 1.35em rgba(99,131,255,.55),
+                    0 .55em 1.4em rgba(0,0,0,.45);
+                z-index:3;
             }
 
             .umedia-poster {
-                position: relative;
-                width: 100%;
-                aspect-ratio: 2 / 3;
-                background: rgba(255,255,255,.08);
+                position:relative;
+                width:100%;
+                aspect-ratio:2 / 3;
+                overflow:hidden;
+                background:linear-gradient(145deg,#263449,#0c111b);
+            }
+
+            .umedia-poster:after {
+                content:"";
+                position:absolute;
+                inset:35% 0 0;
+                background:linear-gradient(
+                    180deg,
+                    transparent 0%,
+                    rgba(3,6,12,.35) 34%,
+                    rgba(3,6,12,.96) 100%
+                );
+                pointer-events:none;
             }
 
             .umedia-poster img {
-                display: block;
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
+                display:block;
+                width:100%;
+                height:100%;
+                object-fit:cover;
+                -webkit-backface-visibility:hidden;
+                backface-visibility:hidden;
             }
 
             .umedia-section-art {
-                height: 100%;
-                min-height: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                position: relative;
-                overflow: hidden;
-                background: linear-gradient(145deg, #252b36, #111720);
+                height:100%;
+                min-height:0;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                position:relative;
+                overflow:hidden;
+                background:radial-gradient(
+                    ellipse at 50% 30%,
+                    #34445f 0%,
+                    #1a2639 48%,
+                    #0b111c 100%
+                );
+            }
+
+            .umedia-section-art:after {
+                content:"";
+                position:absolute;
+                inset:40% 0 0;
+                background:linear-gradient(
+                    180deg,
+                    transparent,
+                    rgba(3,6,12,.94)
+                );
             }
 
             .umedia-section-logo {
-                display: block;
-                width: 48%;
-                height: 48%;
-                object-fit: contain;
-                margin-bottom: 1.4em;
-                filter: drop-shadow(0 .2em .5em rgba(0,0,0,.28));
+                display:block;
+                width:54%;
+                height:48%;
+                object-fit:contain;
+                margin-bottom:1.2em;
+                filter:drop-shadow(0 .3em .65em rgba(0,0,0,.4));
             }
 
             .umedia-section-fallback {
-                color: rgba(255,255,255,.75);
-                font-size: 3.4em;
-                line-height: 1;
-                margin-bottom: .25em;
+                color:rgba(255,255,255,.82);
+                font-size:3.4em;
+                line-height:1;
+                margin-bottom:.25em;
             }
 
             .umedia-section-art-label {
-                position: absolute;
-                z-index: 1;
-                left: .65em;
-                right: .65em;
-                bottom: .85em;
-                color: rgba(255,255,255,.96);
-                font-size: .9em;
-                font-weight: 700;
-                line-height: 1.12;
-                text-align: left;
-                text-shadow: 0 1px 5px rgba(0,0,0,.3);
+                position:absolute;
+                z-index:2;
+                left:.7em;
+                right:.7em;
+                bottom:.85em;
+                color:#fff;
+                font-size:.94em;
+                font-weight:700;
+                line-height:1.15;
+                text-align:left;
+                text-shadow:0 2px 8px rgba(0,0,0,.75);
             }
 
             .umedia-poster-empty {
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: rgba(255,255,255,.45);
-                font-size: 2em;
+                height:100%;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                color:rgba(255,255,255,.5);
+                font-size:2em;
             }
 
             .umedia-tile-title {
-                font-size: .82em;
-                line-height: 1.25;
-                padding: .55em .5em .65em;
-                min-height: 3.3em;
-                box-sizing: border-box;
-                overflow: hidden;
-                color: #fff;
+                position:absolute;
+                z-index:2;
+                left:.68em;
+                right:.55em;
+                bottom:.65em;
+                font-size:.91em;
+                font-weight:650;
+                line-height:1.22;
+                max-height:2.5em;
+                box-sizing:border-box;
+                overflow:hidden;
+                color:#fff;
+                text-shadow:0 1px 5px rgba(0,0,0,.9);
+                padding:0;
+                min-height:0;
             }
 
             .umedia-tile-meta {
-                position: absolute;
-                right: .35em;
-                top: .35em;
-                background: rgba(0,0,0,.78);
-                color: #fff;
-                border-radius: .2em;
-                padding: .22em .35em;
-                font-size: .65em;
+                position:absolute;
+                z-index:3;
+                right:.5em;
+                top:.5em;
+                background:rgba(5,10,19,.78);
+                color:#fff;
+                border:1px solid rgba(255,255,255,.18);
+                border-radius:.38em;
+                padding:.28em .48em;
+                font-size:.66em;
+                font-weight:700;
+                box-shadow:0 .15em .5em rgba(0,0,0,.3);
             }
 
             @media(max-width:900px) {
                 .umedia-grid {
-                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                    grid-template-columns:repeat(4,minmax(0,1fr));
                 }
             }
 
             @media(max-width:580px) {
                 .umedia-screen {
-                    padding: 1em;
+                    padding:1em;
                 }
 
                 .umedia-grid {
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    grid-template-columns:repeat(3,minmax(0,1fr));
                 }
             }
         `;
@@ -552,7 +609,7 @@
 
             tile.on('hover:focus', function () {
                 lastFocus = $(this);
-                scroll.update($(this), true);
+                scroll.update($(this), false);
             });
 
             grid.append(tile);
@@ -680,7 +737,6 @@
 
                     var parsed = parsePlaylist(xml);
 
-                    // Показываем служебные ссылки и реальные фильмы вместе.
                     parsed.sections.forEach(function (section) {
                         addTile(section, true);
                     });
@@ -871,7 +927,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.6.8 initialized');
+        console.log('[Umedia] Version 0.6.9 initialized');
     }
 
     if (window.appready) {
