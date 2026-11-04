@@ -240,11 +240,7 @@
                 min-height:100%;
                 padding:1.3em 2.2em 3em;
                 box-sizing:border-box;
-                background:radial-gradient(
-                    ellipse at 50% 0%,
-                    rgba(80,115,170,.20),
-                    transparent 58%
-                );
+                background:radial-gradient(ellipse at 50% 0%,rgba(80,115,170,.20),transparent 58%);
             }
 
             .umedia-heading {
@@ -269,11 +265,7 @@
                 min-width:0;
                 overflow:hidden;
                 border-radius:.9em;
-                background:linear-gradient(
-                    145deg,
-                    rgba(255,255,255,.16),
-                    rgba(255,255,255,.035)
-                );
+                background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.035));
                 border:1px solid rgba(255,255,255,.22);
                 box-shadow:0 5px 18px rgba(0,0,0,.28);
                 z-index:0;
@@ -287,20 +279,12 @@
                 z-index:4;
                 pointer-events:none;
                 border-radius:inherit;
-                background:linear-gradient(
-                    135deg,
-                    rgba(255,255,255,.18),
-                    transparent 32%,
-                    transparent 72%,
-                    rgba(255,255,255,.06)
-                );
+                background:linear-gradient(135deg,rgba(255,255,255,.18),transparent 32%,transparent 72%,rgba(255,255,255,.06));
             }
 
             .umedia-tile.focus {
                 border:2px solid rgba(255,255,255,.98);
-                box-shadow:
-                    0 0 0 2px rgba(130,175,255,.75),
-                    0 0 22px rgba(110,160,255,.32);
+                box-shadow:0 0 0 2px rgba(130,175,255,.75),0 0 22px rgba(110,160,255,.32);
                 z-index:5;
             }
 
@@ -317,11 +301,7 @@
                 position:absolute;
                 inset:38% 0 0;
                 pointer-events:none;
-                background:linear-gradient(
-                    180deg,
-                    transparent,
-                    rgba(4,8,15,.94)
-                );
+                background:linear-gradient(180deg,transparent,rgba(4,8,15,.94));
             }
 
             .umedia-poster img {
@@ -338,24 +318,14 @@
                 justify-content:center;
                 position:relative;
                 overflow:hidden;
-                background:radial-gradient(
-                    ellipse at 50% 28%,
-                    rgba(111,150,205,.58),
-                    rgba(31,48,72,.9) 48%,
-                    #0b111b 100%
-                );
+                background:radial-gradient(ellipse at 50% 28%,rgba(111,150,205,.58),rgba(31,48,72,.9) 48%,#0b111b 100%);
             }
 
             .umedia-section-art:after {
                 content:"";
                 position:absolute;
                 inset:0;
-                background:linear-gradient(
-                    145deg,
-                    rgba(255,255,255,.20),
-                    transparent 38%,
-                    rgba(0,0,0,.25)
-                );
+                background:linear-gradient(145deg,rgba(255,255,255,.20),transparent 38%,rgba(0,0,0,.25));
                 pointer-events:none;
             }
 
@@ -471,9 +441,7 @@
         var cursor = 0;
 
         root.append(
-            $('<div class="umedia-heading"></div>').text(
-                object.title || 'Umedia'
-            )
+            $('<div class="umedia-heading"></div>').text(object.title || 'Umedia')
         );
 
         root.append(grid);
@@ -503,21 +471,16 @@
 
                 logo.on('error', function () {
                     $(this).remove();
-                    poster.append(
-                        '<div class="umedia-section-fallback">✦</div>'
-                    );
+                    poster.append('<div class="umedia-section-fallback">✦</div>');
                 });
 
                 poster.append(logo);
             } else {
-                poster.append(
-                    '<div class="umedia-section-fallback">✦</div>'
-                );
+                poster.append('<div class="umedia-section-fallback">✦</div>');
             }
 
             poster.append(
-                $('<div class="umedia-section-art-label"></div>')
-                    .text(item.title)
+                $('<div class="umedia-section-art-label"></div>').text(item.title)
             );
         }
 
@@ -533,25 +496,20 @@
 
                 img.on('error', function () {
                     $(this).remove();
-                    poster.append(
-                        '<div class="umedia-poster-empty">▶</div>'
-                    );
+                    poster.append('<div class="umedia-poster-empty">▶</div>');
                 });
 
                 poster.append(img);
                 imageQueue.push(img[0]);
             } else {
-                poster.append(
-                    '<div class="umedia-poster-empty">▶</div>'
-                );
+                poster.append('<div class="umedia-poster-empty">▶</div>');
             }
 
             tile.append(poster);
 
             if (!isSection) {
                 tile.append(
-                    $('<div class="umedia-tile-title"></div>')
-                        .text(item.title)
+                    $('<div class="umedia-tile-title"></div>').text(item.title)
                 );
             }
 
@@ -619,11 +577,12 @@
         function focusCatalog() {
             if (!alive) return;
 
-            var view = scroll.render(true);
+            // Штатная схема Lampa: сначала назначаем коллекцию,
+            // затем устанавливаем фокус на последний выбранный элемент.
+            var view = scroll.render();
 
-            if (view) {
-                Lampa.Controller.collectionSet(view);
-            }
+            Lampa.Controller.collectionSet(view);
+            Lampa.Controller.collectionFocus(lastFocus || false, view);
         }
 
         this.create = function () {
@@ -681,10 +640,7 @@
                     var parsed = parsePlaylist(xml);
 
                     if (!parsed.sections.length && !parsed.movies.length) {
-                        notify(
-                            'В XML не найдены записи с playlist_url или stream_url',
-                            true
-                        );
+                        notify('В XML не найдены записи с playlist_url или stream_url', true);
                         self.activity.empty();
                         return;
                     }
@@ -789,10 +745,7 @@
 
     function openSearch(section) {
         if (!Lampa.Input || typeof Lampa.Input.edit !== 'function') {
-            notify(
-                'В этой сборке Lampa недоступен штатный ввод текста',
-                true
-            );
+            notify('В этой сборке Lampa недоступен штатный ввод текста', true);
             return;
         }
 
@@ -822,8 +775,7 @@
     function addMenuItem() {
         var list = $('.menu .menu__list').eq(0);
 
-        if (!list.length ||
-            list.find('.umedia-menu-item').length) {
+        if (!list.length || list.find('.umedia-menu-item').length) {
             return;
         }
 
@@ -842,10 +794,7 @@
         addStyles();
 
         if (!Lampa.Component.get('umedia_catalog')) {
-            Lampa.Component.add(
-                'umedia_catalog',
-                CatalogScreen
-            );
+            Lampa.Component.add('umedia_catalog', CatalogScreen);
         }
 
         addMenuItem();
