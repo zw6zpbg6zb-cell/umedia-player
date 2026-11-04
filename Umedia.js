@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    var FLAG = 'umedia_lampa_v070';
+    var FLAG = 'umedia_lampa_v071';
     if (window[FLAG]) return;
     window[FLAG] = true;
 
@@ -9,7 +9,6 @@
     var CSS_ID = 'umedia-liquid-glass';
     var BATCH_SIZE = 8;
     var BATCH_DELAY = 24;
-    var activeScreens = [];
 
     var ICON = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6v2h3v1H7v-1h3v-2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v10h16V7H4z"/></svg>';
 
@@ -583,18 +582,6 @@
             grid.append(tile);
         }
 
-        function focusCatalog() {
-            if (!alive) return;
-
-            var view = scroll.render();
-
-            Lampa.Controller.collectionSet(view);
-            Lampa.Controller.collectionFocus(
-                lastFocus || false,
-                view
-            );
-        }
-
         function renderBatch() {
             if (!alive) return;
 
@@ -627,6 +614,16 @@
 
             cursor = 0;
             renderBatch();
+        }
+
+        function focusCatalog() {
+            if (!alive) return;
+
+            var view = scroll.render(true);
+
+            if (view) {
+                Lampa.Controller.collectionSet(view);
+            }
         }
 
         this.create = function () {
@@ -693,7 +690,7 @@
                     }
 
                     console.log(
-                        '[Umedia 0.7.0] sections:',
+                        '[Umedia 0.7.1] sections:',
                         parsed.sections.length,
                         'movies:',
                         parsed.movies.length
@@ -749,13 +746,7 @@
             Lampa.Controller.toggle('content');
         };
 
-        this.stop = function () {
-            // Не оставляем контроллер Umedia активным после ухода с экрана.
-            if (Lampa.Controller.enabled &&
-                Lampa.Controller.enabled().name === 'content') {
-                Lampa.Controller.toggle('menu');
-            }
-        };
+        this.stop = function () {};
 
         this.render = function () {
             return scroll.render();
@@ -797,8 +788,7 @@
     }
 
     function openSearch(section) {
-        if (!Lampa.Input ||
-            typeof Lampa.Input.edit !== 'function') {
+        if (!Lampa.Input || typeof Lampa.Input.edit !== 'function') {
             notify(
                 'В этой сборке Lampa недоступен штатный ввод текста',
                 true
@@ -860,7 +850,7 @@
 
         addMenuItem();
 
-        console.log('[Umedia] Version 0.7.0 initialized');
+        console.log('[Umedia] Version 0.7.1 initialized');
     }
 
     if (window.appready) {
